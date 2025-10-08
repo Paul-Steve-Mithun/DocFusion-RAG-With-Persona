@@ -19,10 +19,10 @@ from .core import config
 def get_embeddings():
     if config.HUGGINGFACE_TOKEN:
         os.environ["HUGGINGFACE_TOKEN"] = config.HUGGINGFACE_TOKEN
-    # Use a stronger embedding model and normalize for cosine distance
-    # "sentence-transformers/all-mpnet-base-v2" offers higher quality than MiniLM for RAG
+    # Use all-MiniLM-L6-v2: smaller model (~90MB) that works well on free tier
+    # all-mpnet-base-v2 (~420MB) is too large for Render free tier (512MB RAM)
     return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-mpnet-base-v2",
+        model_name="all-MiniLM-L6-v2",
         encode_kwargs={"normalize_embeddings": True},
     )
 
