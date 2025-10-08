@@ -140,19 +140,27 @@ def build_conversational_chain(user_id: str, history: Optional[BaseChatMessageHi
         queries = [query]
         try:
             mq_prompt = ChatPromptTemplate.from_messages([
-                ("system", "Generate 2 alternative search queries to find relevant information. Return as a JSON array of strings. Keep queries concise and relevant."),
+                ("system", "Generate 2 alternative search queries to find relevant information. Return ONLY a JSON array of strings, nothing else. Example: [\"query 1\", \"query 2\"]"),
                 ("human", "{q}")
             ])
-            mq = llm.invoke(mq_prompt.format_messages(q=query)).content
+            mq = llm.invoke(mq_prompt.format_messages(q=query)).content.strip()
             import json
+            # Try to extract JSON array if wrapped in markdown code blocks
+            if "```" in mq:
+                # Extract content between ```json and ``` or ``` and ```
+                start = mq.find("[")
+                end = mq.rfind("]") + 1
+                if start != -1 and end > start:
+                    mq = mq[start:end]
             parsed = json.loads(mq)
             if isinstance(parsed, list):
                 for alt in parsed:
                     if isinstance(alt, str) and alt.strip() and alt not in queries:
                         queries.append(alt.strip())
+                print(f"Multi-query expansion: Generated {len(queries)-1} additional queries")
         except Exception as e:
-            # Log for debugging but don't fail
-            print(f"Multi-query expansion failed: {e}")
+            # Log for debugging but don't fail - single query still works fine
+            print(f"Multi-query expansion skipped ({e}). Continuing with original query.")
             pass
 
         def dedup_by_text(docs: List[Document]) -> List[Document]:

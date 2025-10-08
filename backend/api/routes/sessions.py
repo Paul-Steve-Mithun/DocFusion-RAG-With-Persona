@@ -39,7 +39,7 @@ async def create_session(payload: dict | None = None, user_id: str = Depends(get
         if existing:
             raise HTTPException(status_code=400, detail=f"Session '{name}' already exists")
     else:
-        # Find the next available session number by checking existing sessions
+        # Find the next available session number (fill gaps)
         existing_sessions = []
         async for session in db.sessions.find({"owner_id": user_id}):
             existing_sessions.append(session.get("name", ""))
@@ -54,8 +54,8 @@ async def create_session(payload: dict | None = None, user_id: str = Depends(get
                 except ValueError:
                     pass
         
-        # Find the next available number
-        n = 1
+        # Find the lowest available number (fill gaps)
+        n = 2
         while n in session_numbers:
             n += 1
         
