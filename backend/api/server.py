@@ -9,13 +9,7 @@ app = FastAPI(title="Persona RAG API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174", 
-        "https://docfusion-backend.onrender.com",
-        # Add your frontend URL when deployed:
-        # "https://your-frontend.onrender.com"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
