@@ -26,6 +26,7 @@
 - [Installation](#-installation)
 - [Environment Variables](#-environment-variables)
 - [Usage](#-usage)
+- [Deployment](#-deployment)
 - [Project Structure](#-project-structure)
 - [API Endpoints](#-api-endpoints)
 - [Screenshots](#-screenshots)
@@ -412,6 +413,35 @@ RAG/
 |--------|----------|-------------|---------------|
 | `POST` | `/api/chat/ask` | Ask question | ✅ |
 | `GET` | `/api/chat/history` | Get chat history | ✅ |
+
+---
+
+## 🚀 Deployment
+
+### **Deploy to Render**
+
+This application is optimized for deployment on [Render](https://render.com). We provide two deployment strategies:
+
+#### **Option 1: Two Separate Services (Recommended)**
+Deploy backend and frontend as independent services for better scalability and performance.
+
+📖 **Quick Start Guide**: See [`RENDER_QUICK_START.md`](RENDER_QUICK_START.md) for a step-by-step deployment guide.
+
+#### **Option 2: Single Service**
+Deploy both backend and frontend together from a single container.
+
+📖 **Detailed Guide**: See [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) for comprehensive instructions on both deployment methods.
+
+### **Key Files for Deployment**
+
+- `render.yaml` - Blueprint for automatic Render deployment
+- `backend/Procfile` - Backend start command for Render
+- `frontend/env.example` - Template for frontend environment variables
+- `backend/env.example` - Template for backend environment variables
+
+### **Architecture Overview**
+
+For a detailed understanding of the system architecture and data flow, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
