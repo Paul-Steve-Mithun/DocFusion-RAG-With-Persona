@@ -7,7 +7,13 @@ app = FastAPI(title="Persona RAG API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174", 
+        "https://docfusion-backend.onrender.com",
+        # Add your frontend URL when deployed:
+        # "https://your-frontend.onrender.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,5 +31,16 @@ async def health():
 @app.on_event("startup")
 async def on_startup():
     await ensure_indexes()
+    # Pre-download embedding model to avoid timeout on first document upload
+    try:
+        print("Pre-loading embedding model...")
+        from .rag import get_embeddings
+        embeddings = get_embeddings()
+        # Test the model to ensure it's fully loaded
+        embeddings.embed_query("test")
+        print("✓ Embedding model loaded successfully")
+    except Exception as e:
+        print(f"Warning: Failed to pre-load embedding model: {e}")
+        print("Model will be downloaded on first document upload")
 
 
