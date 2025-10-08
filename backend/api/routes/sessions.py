@@ -7,8 +7,18 @@ from openai import OpenAI
 from ..rag import get_user_chroma_dir
 import shutil
 import os
+import cloudinary
+import cloudinary.uploader
 
 router = APIRouter()
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=config.CLOUDINARY_CLOUD_NAME,
+    api_key=config.CLOUDINARY_API_KEY,
+    api_secret=config.CLOUDINARY_API_SECRET,
+    secure=True
+)
 
 @router.get("")
 async def list_sessions(user_id: str = Depends(get_current_user_id)):
@@ -24,17 +34,40 @@ async def create_session(payload: dict | None = None, user_id: str = Depends(get
     requested = (payload or {}).get("name")
     if requested:
         name = requested
+        # Check if requested name already exists
+        existing = await db.sessions.find_one({"owner_id": user_id, "name": name})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Session '{name}' already exists")
     else:
-        # Generate sequential Session N based on count, ensuring uniqueness
-        count = await db.sessions.count_documents({"owner_id": user_id})
-        n = count + 1
-        name = f"Session {n}"
-        # ensure unique in case of manual naming
-        while await db.sessions.find_one({"owner_id": user_id, "name": name}):
+        # Find the next available session number by checking existing sessions
+        existing_sessions = []
+        async for session in db.sessions.find({"owner_id": user_id}):
+            existing_sessions.append(session.get("name", ""))
+        
+        # Extract numbers from "Session N" format
+        session_numbers = []
+        for session_name in existing_sessions:
+            if session_name.startswith("Session "):
+                try:
+                    num = int(session_name.replace("Session ", ""))
+                    session_numbers.append(num)
+                except ValueError:
+                    pass
+        
+        # Find the next available number
+        n = 1
+        while n in session_numbers:
             n += 1
-            name = f"Session {n}"
-    res = await db.sessions.insert_one({"owner_id": user_id, "name": name})
-    return {"_id": str(res.inserted_id), "name": name}
+        
+        name = f"Session {n}"
+    
+    try:
+        res = await db.sessions.insert_one({"owner_id": user_id, "name": name})
+        return {"_id": str(res.inserted_id), "name": name}
+    except Exception as e:
+        if "duplicate key error" in str(e).lower():
+            raise HTTPException(status_code=409, detail=f"Session '{name}' already exists. Please try again.")
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 @router.patch("/{session_id}/rename")
 async def rename_session(session_id: str, payload: dict, user_id: str = Depends(get_current_user_id)):
@@ -70,20 +103,56 @@ async def suggest_from_chat(payload: dict, user_id: str = Depends(get_current_us
 @router.delete("/{session_name}")
 async def delete_session(session_name: str, user_id: str = Depends(get_current_user_id)):
     db = await get_db()
+    
+    # First, get all documents for this session to delete from Cloudinary
+    documents = []
+    async for doc in db.documents.find({"owner_id": user_id, "session_id": session_name}):
+        documents.append(doc)
+    
+    # Delete PDFs from Cloudinary
+    for doc in documents:
+        cloudinary_public_id = doc.get("cloudinary_public_id")
+        if cloudinary_public_id:
+            try:
+                cloudinary.uploader.destroy(cloudinary_public_id, resource_type="raw")
+                print(f"Deleted PDF from Cloudinary: {cloudinary_public_id}")
+            except Exception as e:
+                print(f"Warning: Could not delete PDF from Cloudinary: {cloudinary_public_id}, Error: {e}")
+    
     # Remove session record
     await db.sessions.delete_many({"owner_id": user_id, "name": session_name})
+    
     # Remove messages
     await db.messages.delete_many({"owner_id": user_id, "session_id": session_name})
+    
     # Remove documents metadata for this session
     await db.documents.delete_many({"owner_id": user_id, "session_id": session_name})
-    # Remove per-session Chroma directory
+    
+    # Remove per-session Chroma directory (embeddings)
     chroma_dir = get_user_chroma_dir(user_id, session_name)
     try:
         if os.path.isdir(chroma_dir):
-            shutil.rmtree(chroma_dir, ignore_errors=True)
-    except Exception:
-        pass
-    return {"status": "deleted"}
+            # Try multiple times with delays to handle file locks
+            import time
+            for attempt in range(3):
+                try:
+                    shutil.rmtree(chroma_dir, ignore_errors=True)
+                    print(f"Deleted ChromaDB directory: {chroma_dir}")
+                    break
+                except Exception as e:
+                    if attempt < 2:
+                        print(f"Attempt {attempt + 1} failed, retrying in 0.5s: {e}")
+                        time.sleep(0.5)
+                    else:
+                        print(f"Warning: Could not delete ChromaDB directory after 3 attempts: {e}")
+    except Exception as e:
+        print(f"Warning: Could not delete ChromaDB directory: {e}")
+    
+    return {"status": "deleted", "cleaned_up": {
+        "pdfs": len(documents),
+        "messages": "deleted",
+        "chroma_db": "deleted"
+    }}
 
 @router.post("/rename_by_name")
 async def rename_by_name(payload: dict, user_id: str = Depends(get_current_user_id)):

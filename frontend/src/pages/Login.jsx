@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthProvider'
 import { Mail, Lock, LogIn } from 'lucide-react'
 import logoImg from '../assets/DocFusion.png'
+import Spinner from '../components/Spinner'
 
 export default function Login() {
   const { setToken } = useAuth()
@@ -11,15 +12,33 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('Authenticating...')
 
   async function onSubmit(e) {
     e.preventDefault()
     setError('')
+    setLoading(true)
+    
     try {
+      // Step 1: Authenticating
+      setLoadingMessage('Authenticating...')
       const { data } = await api.post('/auth/login', { email, password })
       setToken(data.access_token)
+      
+      // Step 2: Loading user data
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setLoadingMessage('Loading your profile...')
+      
+      // Step 3: Setting up
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setLoadingMessage('Setting up workspace...')
+      
+      // Step 4: Navigate
+      await new Promise(resolve => setTimeout(resolve, 1000))
       navigate('/')
     } catch (err) {
+      setLoading(false)
       setError(err?.response?.data?.detail || 'Login failed')
     }
   }
@@ -27,12 +46,12 @@ export default function Login() {
   return (
     <div className="min-h-dvh grid place-items-center bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-[#1e293b] p-1.5 flex items-center justify-center mx-auto mb-4 shadow-xl">
+        <div className="text-center mb-5">
+          <div className="w-28 h-28 mx-auto mb-1">
             <img src={logoImg} alt="DocFusion AI" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-[#1e293b] mb-2">DocFusion AI</h1>
-          <p className="text-slate-600">Intelligent Document Assistant</p>
+          <h1 className="text-4xl font-black text-teal-700 mb-2 tracking-tight">DocFusion AI</h1>
+          <p className="text-teal-600 font-medium">Intelligent Document Assistant</p>
         </div>
 
         <form onSubmit={onSubmit} className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-200">
@@ -76,9 +95,21 @@ export default function Login() {
             </div>
           </div>
 
-          <button className="w-full mt-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-3.5 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-            <LogIn className="w-5 h-5" />
-            Sign in
+          <button 
+            disabled={loading}
+            className="w-full mt-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-3.5 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Spinner size={20} />
+                {loadingMessage}
+              </>
+            ) : (
+              <>
+                <LogIn className="w-5 h-5" />
+                Sign in
+              </>
+            )}
           </button>
 
           <p className="text-sm text-slate-600 text-center mt-6">

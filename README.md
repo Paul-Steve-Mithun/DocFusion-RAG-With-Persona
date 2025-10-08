@@ -151,23 +151,23 @@
 │  │  • History-Aware Retrieval                         │          │
 │  └────────────────────────────────────────────────────┘          │
 └─────────────────────────────────────────────────────────────────┘
-              │                            │
-              │                            │
-    ┌─────────▼─────────┐       ┌─────────▼──────────┐
-    │   MongoDB         │       │    ChromaDB        │
-    │   • Users         │       │    • Embeddings    │
-    │   • Sessions      │       │    • Vectors       │
-    │   • Documents     │       │    • BM25 Index    │
-    │   • Chat History  │       │    (per user/      │
-    └───────────────────┘       │     session)       │
-                                └────────────────────┘
+         │                  │                         │
+         │                  │                         │
+    ┌────▼──────┐  ┌────────▼────────┐   ┌───────────▼──────────┐
+    │  MongoDB  │  │   ChromaDB      │   │   Cloudinary         │
+    │  • Users  │  │   • Embeddings  │   │   • PDF Storage      │
+    │  • Sess.  │  │   • Vectors     │   │   • CDN Delivery     │
+    │  • Docs   │  │   • BM25 Index  │   │   (25GB Free Tier)   │
+    │  • Chat   │  │   (per user/    │   └──────────────────────┘
+    └───────────┘  │    session)     │
+                   └─────────────────┘
 ```
 
 ### **Data Flow**
 
 1. **Authentication**: User registers/logs in → JWT token issued
 2. **Session Creation**: User creates a session → stored in MongoDB
-3. **Document Upload**: PDF uploaded → extracted, chunked, embedded → stored in ChromaDB + metadata in MongoDB
+3. **Document Upload**: PDF uploaded → stored in Cloudinary → extracted, chunked, embedded → vectors stored in ChromaDB + metadata in MongoDB
 4. **Query Processing**:
    - User sends question
    - Multi-query expansion generates related queries
@@ -175,6 +175,7 @@
    - Retrieved documents reranked
    - LLM generates answer with context
    - Response streamed to frontend
+5. **Document Viewing**: User clicks document → redirected to Cloudinary CDN URL → PDF opens in browser
 
 ---
 
@@ -186,6 +187,7 @@ Before you begin, ensure you have the following installed:
 - **Node.js 18+** ([Download](https://nodejs.org/))
 - **MongoDB** ([Download](https://www.mongodb.com/try/download/community))
 - **OpenAI API Key** ([Get one](https://platform.openai.com/api-keys))
+- **Cloudinary Account** ([Sign up free](https://cloudinary.com)) - Required for PDF storage
 - **Git** ([Download](https://git-scm.com/))
 
 ---
@@ -263,6 +265,12 @@ JWT_ALGORITHM=HS256
 
 # ChromaDB Storage
 CHROMA_PERSIST_DIR=./chroma_db
+
+# Cloudinary Configuration (REQUIRED for PDF storage)
+# Sign up at https://cloudinary.com to get these credentials
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 ### **Environment Variable Details**
@@ -275,6 +283,11 @@ CHROMA_PERSIST_DIR=./chroma_db
 | `JWT_SECRET` | ✅ Yes | Secret key for JWT token signing (change in production!) |
 | `JWT_ALGORITHM` | ⚠️ Optional | JWT algorithm (default: HS256) |
 | `CHROMA_PERSIST_DIR` | ⚠️ Optional | Directory for ChromaDB storage (default: ./chroma_db) |
+| `CLOUDINARY_CLOUD_NAME` | ✅ Yes | Your Cloudinary cloud name for PDF storage |
+| `CLOUDINARY_API_KEY` | ✅ Yes | Your Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | ✅ Yes | Your Cloudinary API secret |
+
+> **📝 Note:** Cloudinary is used for persistent PDF storage. This is essential for deployment on platforms like Render where local storage is ephemeral. See [CLOUDINARY_SETUP.md](CLOUDINARY_SETUP.md) for detailed setup instructions.
 
 ---
 

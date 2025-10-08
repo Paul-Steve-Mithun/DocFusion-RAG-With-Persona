@@ -32,6 +32,9 @@ chroma_data/
 *.parquet
 *.bin
 
+# PDF Storage
+pdf_storage/
+
 # IDE
 .vscode/
 .idea/

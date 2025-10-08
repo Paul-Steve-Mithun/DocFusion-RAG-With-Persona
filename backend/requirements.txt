@@ -21,3 +21,5 @@ python-multipart
 email-validator
 openai
 langchain-openai
+cloudinary
+requests

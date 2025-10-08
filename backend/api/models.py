@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 
 class UserCreate(BaseModel):
+    name: str
     email: EmailStr
     password: str
 
@@ -11,6 +12,7 @@ class UserLogin(BaseModel):
 
 class UserPublic(BaseModel):
     id: str = Field(alias="_id")
+    name: str
     email: EmailStr
 
 class TokenResponse(BaseModel):
