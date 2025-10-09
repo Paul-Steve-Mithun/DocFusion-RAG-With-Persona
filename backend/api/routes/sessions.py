@@ -40,29 +40,40 @@ async def create_session(payload: dict | None = None, user_id: str = Depends(get
             raise HTTPException(status_code=400, detail=f"Session '{name}' already exists")
     else:
         # Find the next available session number (fill gaps)
-        existing_sessions = []
+        # Get all sessions and extract their session_number field
+        existing_numbers = []
         async for session in db.sessions.find({"owner_id": user_id}):
-            existing_sessions.append(session.get("name", ""))
-        
-        # Extract numbers from "Session N" format
-        session_numbers = []
-        for session_name in existing_sessions:
-            if session_name.startswith("Session "):
-                try:
-                    num = int(session_name.replace("Session ", ""))
-                    session_numbers.append(num)
-                except ValueError:
-                    pass
+            session_num = session.get("session_number")
+            if session_num is not None:
+                existing_numbers.append(session_num)
+            else:
+                # Handle legacy sessions without session_number field
+                # Try to extract from name if it follows "Session N" pattern
+                session_name = session.get("name", "")
+                if session_name.startswith("Session "):
+                    try:
+                        legacy_num = int(session_name.replace("Session ", ""))
+                        existing_numbers.append(legacy_num)
+                        # Update the session to include session_number for future consistency
+                        await db.sessions.update_one(
+                            {"_id": session["_id"]},
+                            {"$set": {"session_number": legacy_num}}
+                        )
+                    except ValueError:
+                        pass
         
         # Find the lowest available number (fill gaps)
-        n = 2
-        while n in session_numbers:
+        n = 1
+        while n in existing_numbers:
             n += 1
         
         name = f"Session {n}"
     
     try:
-        res = await db.sessions.insert_one({"owner_id": user_id, "name": name})
+        session_data = {"owner_id": user_id, "name": name}
+        if not requested:  # Only add session_number for auto-generated sessions
+            session_data["session_number"] = n
+        res = await db.sessions.insert_one(session_data)
         return {"_id": str(res.inserted_id), "name": name}
     except Exception as e:
         if "duplicate key error" in str(e).lower():

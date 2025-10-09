@@ -32,7 +32,7 @@ async def register(payload: UserCreate, background_tasks: BackgroundTasks):
         "password": hashed
     })
     
-    # Send welcome email in background
+    # Send welcome email in background (optional - won't fail registration if email fails)
     background_tasks.add_task(send_welcome_email, payload.email, payload.name)
     
     token = create_access_token(str(res.inserted_id))

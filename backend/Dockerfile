@@ -18,8 +18,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create directories for ChromaDB and HuggingFace cache with proper permissions
-RUN mkdir -p /app/chroma_db && chmod 777 /app/chroma_db && \
-    mkdir -p /app/.cache/huggingface && chmod -R 777 /app/.cache
+RUN mkdir -p /app/chroma_db && \
+    mkdir -p /app/.cache/huggingface && \
+    chmod -R 777 /app/chroma_db && \
+    chmod -R 777 /app/.cache
 
 # Expose port (HF Spaces uses 7860 by default)
 EXPOSE 7860
@@ -34,9 +36,14 @@ ENV HUGGINGFACE_HUB_CACHE=/app/.cache/huggingface
 ENV SQLITE_TMPDIR=/app/chroma_db
 ENV TMPDIR=/tmp
 
-# Set umask to ensure all files created by the app are writable
-# This fixes ChromaDB's SQLite "readonly database" error
-RUN echo "umask 000" >> /etc/profile
+# Create startup script to handle permissions
+RUN echo '#!/bin/bash\n\
+umask 000\n\
+# Ensure directories exist and are writable\n\
+mkdir -p /app/chroma_db /app/.cache/huggingface\n\
+# Start the server\n\
+exec uvicorn api.server:app --host 0.0.0.0 --port 7860' > /app/start.sh && \
+    chmod +x /app/start.sh
 
-# Run the FastAPI server with proper umask
-CMD ["sh", "-c", "umask 000 && uvicorn api.server:app --host 0.0.0.0 --port 7860"]
+# Run the startup script
+CMD ["/app/start.sh"]

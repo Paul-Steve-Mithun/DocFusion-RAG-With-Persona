@@ -1,16 +1,15 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from .core import config
 import os
+import resend
+from .core import config
 
-# SMTP Configuration
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USER)
-SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "DocFusion AI")
+# Resend Configuration
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")  # Use resend.dev for testing
+RESEND_FROM_NAME = os.getenv("RESEND_FROM_NAME", "DocFusion AI")
+
+# Configure Resend
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 def get_welcome_email_html(user_name: str) -> str:
     """Generate a themed welcome email HTML"""
@@ -101,19 +100,13 @@ def get_welcome_email_html(user_name: str) -> str:
 """
 
 async def send_welcome_email(to_email: str, user_name: str) -> bool:
-    """Send a welcome email to a new user"""
-    if not SMTP_USER or not SMTP_PASSWORD:
-        print("SMTP not configured, skipping email")
-        return False
+    """Send a welcome email to a new user using Resend"""
+    if not RESEND_API_KEY:
+        print("Resend API key not configured, skipping email")
+        return True  # Return True so it doesn't cause issues
     
     try:
-        # Create message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"Welcome to DocFusion AI, {user_name}! 🎉"
-        msg['From'] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
-        msg['To'] = to_email
-        
-        # Plain text version
+        # Plain text version (fallback)
         text_content = f"""
 Welcome to DocFusion AI, {user_name}!
 
@@ -139,21 +132,22 @@ Happy document exploring!
         # HTML version
         html_content = get_welcome_email_html(user_name)
         
-        # Attach both versions
-        part1 = MIMEText(text_content, 'plain')
-        part2 = MIMEText(html_content, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
+        # Send email using Resend
+        params = {
+            "from": f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": f"Welcome to DocFusion AI, {user_name}! 🎉",
+            "html": html_content,
+            "text": text_content,
+        }
         
-        # Send email
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-        
-        print(f"Welcome email sent successfully to {to_email}")
+        response = resend.Emails.send(params)
+        print(f"Welcome email sent successfully to {to_email} (ID: {response.get('id', 'N/A')})")
         return True
+        
     except Exception as e:
         print(f"Failed to send welcome email: {e}")
+        # Don't raise the exception - just log it and continue
+        # This prevents email failures from breaking registration
         return False
 
