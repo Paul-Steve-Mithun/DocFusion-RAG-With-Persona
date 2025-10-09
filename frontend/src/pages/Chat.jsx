@@ -93,6 +93,7 @@ export default function Chat() {
       const aiText = data.answer
       const sources = data.sources || []
       setMessages(prev => [...prev, { role: 'assistant', content: aiText, sources }])
+      setTyping(false) // Clear typing animation before session rename
       // If session uses the default sequential name (e.g., "Session 1"), rename it after first Q&A
       if (/^Session\s+\d+$/i.test(sessionId)) {
         try {

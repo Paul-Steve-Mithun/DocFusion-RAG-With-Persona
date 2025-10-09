@@ -40,7 +40,7 @@ ENV TMPDIR=/tmp
 RUN echo '#!/bin/bash\n\
 umask 000\n\
 # Ensure directories exist and are writable\n\
-mkdir -p /app/chroma_db /app/.cache/huggingface\n\
+mkdir -p /tmp/chroma_db /app/.cache/huggingface\n\
 # Start the server\n\
 exec uvicorn api.server:app --host 0.0.0.0 --port 7860' > /app/start.sh && \
     chmod +x /app/start.sh

@@ -28,7 +28,8 @@ def get_embeddings():
 
 
 def get_user_chroma_dir(user_id: str, session_id: str | None = None) -> str:
-    base = config.CHROMA_PERSIST_DIR
+    # Use /tmp for ChromaDB to avoid permission issues in HF Spaces
+    base = "/tmp/chroma_db"
     if session_id:
         return os.path.join(base, f"user_{user_id}", f"session_{session_id}")
     return os.path.join(base, f"user_{user_id}")
@@ -38,10 +39,18 @@ def get_vectorstore_for_user(user_id: str, session_id: str | None = None) -> Chr
     if not session_id:
         # Enforce per-session isolation; caller must provide session_id
         raise ValueError("session_id is required for vectorstore access")
-    persist_dir = get_user_chroma_dir(user_id, session_id)
-    os.makedirs(persist_dir, exist_ok=True)
-    embeddings = get_embeddings()
-    return Chroma(persist_directory=persist_dir, embedding_function=embeddings)
+    
+    # Try to use persistent directory, fall back to in-memory if it fails
+    try:
+        persist_dir = get_user_chroma_dir(user_id, session_id)
+        os.makedirs(persist_dir, exist_ok=True)
+        embeddings = get_embeddings()
+        return Chroma(persist_directory=persist_dir, embedding_function=embeddings)
+    except Exception as e:
+        print(f"⚠️ Persistent ChromaDB failed ({e}), using in-memory mode")
+        # Fallback to in-memory ChromaDB (no persistence)
+        embeddings = get_embeddings()
+        return Chroma(embedding_function=embeddings)
 
 
 def index_pdf_for_user(user_id: str, temp_pdf_path: str, session_id: str | None = None):

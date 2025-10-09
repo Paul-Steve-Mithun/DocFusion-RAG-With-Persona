@@ -18,6 +18,11 @@ app.include_router(documents.router, prefix="/api/documents", tags=["documents"]
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 
+@app.get("/")
+async def root():
+    """Root endpoint for health checks"""
+    return {"status": "ok", "message": "DocFusion AI Backend is running", "version": "1.0.0"}
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}

@@ -42,18 +42,24 @@ async def create_session(payload: dict | None = None, user_id: str = Depends(get
         # Find the next available session number (fill gaps)
         # Get all sessions and extract their session_number field
         existing_numbers = []
+        existing_sessions = []
+        
         async for session in db.sessions.find({"owner_id": user_id}):
+            session_name = session.get("name", "")
+            existing_sessions.append(session_name)
             session_num = session.get("session_number")
+            
             if session_num is not None:
                 existing_numbers.append(session_num)
+                print(f"DEBUG: Found session '{session_name}' with session_number: {session_num}")
             else:
                 # Handle legacy sessions without session_number field
                 # Try to extract from name if it follows "Session N" pattern
-                session_name = session.get("name", "")
                 if session_name.startswith("Session "):
                     try:
                         legacy_num = int(session_name.replace("Session ", ""))
                         existing_numbers.append(legacy_num)
+                        print(f"DEBUG: Legacy session '{session_name}' -> session_number: {legacy_num}")
                         # Update the session to include session_number for future consistency
                         await db.sessions.update_one(
                             {"_id": session["_id"]},
@@ -61,13 +67,20 @@ async def create_session(payload: dict | None = None, user_id: str = Depends(get
                         )
                     except ValueError:
                         pass
+                else:
+                    print(f"DEBUG: Non-Session session found: '{session_name}' (ignoring for numbering)")
+        
+        print(f"DEBUG: All existing sessions: {existing_sessions}")
+        print(f"DEBUG: All existing session_numbers: {existing_numbers}")
         
         # Find the lowest available number (fill gaps)
-        n = 1
+        # Start from 2 to avoid confusion with renamed "Session 1"
+        n = 2
         while n in existing_numbers:
             n += 1
         
         name = f"Session {n}"
+        print(f"DEBUG: Creating new session with number: {n}, name: '{name}'")
     
     try:
         session_data = {"owner_id": user_id, "name": name}
