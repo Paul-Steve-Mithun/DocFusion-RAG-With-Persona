@@ -24,4 +24,4 @@ langchain-openai
 cloudinary
 requests
 rank-bm25
-resend
+sendgrid

@@ -272,6 +272,15 @@ CHROMA_PERSIST_DIR=./chroma_db
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# SendGrid Configuration (optional, for welcome emails)
+# Sign up at https://sendgrid.com to get a free API key (100 emails/day)
+SENDGRID_API_KEY=SG.your-sendgrid-api-key-here
+SENDGRID_FROM_EMAIL=your-verified-email@gmail.com
+SENDGRID_FROM_NAME=DocFusion AI
+
+# Frontend URL (for email links)
+FRONTEND_URL=http://localhost:5173
 ```
 
 ### **Environment Variable Details**
@@ -287,8 +296,14 @@ CLOUDINARY_API_SECRET=your_api_secret
 | `CLOUDINARY_CLOUD_NAME` | ✅ Yes | Your Cloudinary cloud name for PDF storage |
 | `CLOUDINARY_API_KEY` | ✅ Yes | Your Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | ✅ Yes | Your Cloudinary API secret |
+| `SENDGRID_API_KEY` | ⚠️ Optional | SendGrid API key for sending welcome emails (100/day free) |
+| `SENDGRID_FROM_EMAIL` | ⚠️ Optional | Verified sender email address for SendGrid |
+| `SENDGRID_FROM_NAME` | ⚠️ Optional | Sender name (default: DocFusion AI) |
+| `FRONTEND_URL` | ⚠️ Optional | Frontend URL for email links (default: http://localhost:5173) |
 
 > **📝 Note:** Cloudinary is used for persistent PDF storage. This is essential for deployment on platforms like Render where local storage is ephemeral. See [CLOUDINARY_SETUP.md](CLOUDINARY_SETUP.md) for detailed setup instructions.
+
+> **📧 Email Setup:** SendGrid is used for sending welcome emails. See [SENDGRID_SETUP.md](SENDGRID_SETUP.md) for complete setup instructions (works in Hugging Face Spaces!).
 
 ---
 

@@ -1,15 +1,17 @@
 import os
-import resend
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content
 from .core import config
 
-# Resend Configuration
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
-RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")  # Use resend.dev for testing
-RESEND_FROM_NAME = os.getenv("RESEND_FROM_NAME", "DocFusion AI")
+# SendGrid Configuration
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "noreply@yourdomain.com")  # Change this to your email
+SENDGRID_FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "DocFusion AI")
 
-# Configure Resend
-if RESEND_API_KEY:
-    resend.api_key = RESEND_API_KEY
+# Configure SendGrid
+sendgrid_client = None
+if SENDGRID_API_KEY:
+    sendgrid_client = SendGridAPIClient(SENDGRID_API_KEY)
 
 def get_welcome_email_html(user_name: str) -> str:
     """Generate a themed welcome email HTML"""
@@ -90,8 +92,11 @@ def get_welcome_email_html(user_name: str) -> str:
             <p style="color: #94a3b8; font-size: 12px; margin: 0 0 8px;">
                 © 2025 DocFusion AI. All rights reserved.
             </p>
-            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0 0 8px;">
                 You're receiving this email because you created an account with DocFusion AI.
+            </p>
+            <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+                <a href="{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/settings" style="color: #64748b; text-decoration: underline;">Update email preferences</a>
             </p>
         </div>
     </div>
@@ -100,9 +105,9 @@ def get_welcome_email_html(user_name: str) -> str:
 """
 
 async def send_welcome_email(to_email: str, user_name: str) -> bool:
-    """Send a welcome email to a new user using Resend"""
-    if not RESEND_API_KEY:
-        print("Resend API key not configured, skipping email")
+    """Send a welcome email to a new user using SendGrid"""
+    if not sendgrid_client:
+        print("SendGrid API key not configured, skipping email")
         return True  # Return True so it doesn't cause issues
     
     try:
@@ -132,17 +137,25 @@ Happy document exploring!
         # HTML version
         html_content = get_welcome_email_html(user_name)
         
-        # Send email using Resend
-        params = {
-            "from": f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>",
-            "to": [to_email],
-            "subject": f"Welcome to DocFusion AI, {user_name}! 🎉",
-            "html": html_content,
-            "text": text_content,
+        # Create SendGrid message
+        message = Mail(
+            from_email=Email(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
+            to_emails=To(to_email),
+            subject=f"Welcome to DocFusion AI, {user_name}! 🎉",
+            plain_text_content=Content("text/plain", text_content),
+            html_content=Content("text/html", html_content)
+        )
+        
+        # Add tracking settings to improve deliverability
+        message.tracking_settings = {
+            "click_tracking": {"enable": False, "enable_text": False},
+            "open_tracking": {"enable": False},
+            "subscription_tracking": {"enable": False}
         }
         
-        response = resend.Emails.send(params)
-        print(f"Welcome email sent successfully to {to_email} (ID: {response.get('id', 'N/A')})")
+        # Send email using SendGrid
+        response = sendgrid_client.send(message)
+        print(f"Welcome email sent successfully to {to_email} (Status: {response.status_code})")
         return True
         
     except Exception as e:
