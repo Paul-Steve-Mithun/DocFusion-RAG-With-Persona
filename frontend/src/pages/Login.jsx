@@ -47,15 +47,15 @@ export default function Login() {
     <div className="min-h-dvh grid place-items-center bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-5">
-          <div className="w-28 h-28 mx-auto mb-1">
+          <div className="w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-1">
             <img src={logoImg} alt="DocFusion AI" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-4xl font-black text-teal-700 mb-2 tracking-tight">DocFusion AI</h1>
-          <p className="text-teal-600 font-medium">Intelligent Document Assistant</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-teal-700 mb-2 tracking-tight">DocFusion AI</h1>
+          <p className="text-sm sm:text-base text-teal-600 font-medium">Intelligent Document Assistant</p>
         </div>
 
-        <form onSubmit={onSubmit} className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6">Welcome back</h2>
+        <form onSubmit={onSubmit} className="bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6">Welcome back</h2>
           
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-4">

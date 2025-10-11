@@ -51,43 +51,45 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-dvh bg-gray-50">
-      <div className="w-full p-4">
-        <div className="flex items-center justify-between py-4">
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-          <div className="flex items-center gap-3">
-            <Link to="/chat" className="underline">Chat</Link>
-            <button onClick={logout} className="text-sm underline">Logout</button>
+      <div className="w-full p-4 sm:p-6 lg:p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Dashboard</h1>
+            <div className="flex items-center gap-3">
+              <Link to="/chat" className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition-colors">Chat</Link>
+              <button onClick={logout} className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-colors">Logout</button>
+            </div>
           </div>
-        </div>
-        <form onSubmit={onUpload} className="bg-white p-4 rounded-xl shadow mb-4 border border-gray-200">
-          <div className="flex items-center justify-between mb-3">
+        <form onSubmit={onUpload} className="bg-white p-4 sm:p-6 rounded-xl shadow-lg mb-4 sm:mb-6 border border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <div>
-              <div className="font-medium">Upload PDF</div>
+              <div className="font-semibold text-lg text-slate-800">Upload PDF</div>
               <div className="text-xs text-gray-500">Drag & drop or choose a file</div>
             </div>
             {uploading && <Spinner />}
           </div>
-          <input ref={fileRef} type="file" accept="application/pdf" className="w-full border rounded px-3 py-2" />
+          <input ref={fileRef} type="file" accept="application/pdf" className="w-full border-2 border-gray-200 rounded-lg px-3 py-3 text-sm focus:border-teal-500 focus:outline-none transition-colors" />
           {uploading && (
-            <div className="mt-3">
+            <div className="mt-4">
               <ProgressBar value={progress} />
-              <div className="text-xs text-gray-500 mt-1">{progress}%</div>
+              <div className="text-xs text-gray-500 mt-2 text-center">{progress}%</div>
             </div>
           )}
-          {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
-          <button disabled={uploading} className="mt-3 bg-black text-white py-2 px-4 rounded disabled:opacity-50">{uploading ? 'Uploading...' : 'Upload'}</button>
+          {error && <div className="text-red-600 text-sm mt-3 p-3 bg-red-50 rounded-lg border border-red-200">{error}</div>}
+          <button disabled={uploading} className="mt-4 w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white py-3 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors">{uploading ? 'Uploading...' : 'Upload Document'}</button>
         </form>
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b font-medium">Your documents</div>
-          <ul>
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="p-4 sm:p-6 border-b border-gray-200 font-semibold text-lg text-slate-800">Your Documents</div>
+          <ul className="divide-y divide-gray-200">
             {docs.map(d => (
-              <li key={d._id} className="p-4 border-b last:border-b-0">
-                <div className="font-medium">{d.filename}</div>
-                <div className="text-xs text-gray-500">{d.size} bytes</div>
+              <li key={d._id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div className="font-medium text-slate-800 mb-1">{d.filename}</div>
+                <div className="text-xs text-gray-500">{(d.size / 1024).toFixed(1)} KB</div>
               </li>
             ))}
-            {!docs.length && <li className="p-4 text-sm text-gray-500">No documents yet.</li>}
+            {!docs.length && <li className="p-8 text-sm text-gray-500 text-center">No documents yet. Upload your first PDF above!</li>}
           </ul>
+        </div>
         </div>
       </div>
     </div>

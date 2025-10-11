@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import ChatBubble from '../components/ChatBubble'
 import TypingDots from '../components/TypingDots'
 import Spinner from '../components/Spinner'
-import { Upload, FileText, LogOut, Send, Plus, MoreHorizontal, Trash2, User } from 'lucide-react'
+import { Upload, FileText, LogOut, Send, Plus, MoreHorizontal, Trash2, User, Menu, X } from 'lucide-react'
 import logoImg from '../assets/DocFusion.png'
 
 export default function Chat() {
@@ -25,6 +25,8 @@ export default function Chat() {
   const bottomRef = useRef(null)
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -164,6 +166,9 @@ export default function Chat() {
       
       // Clean up the blob URL after a delay
       setTimeout(() => window.URL.revokeObjectURL(url), 100)
+      
+      // Close sidebar on mobile after opening document
+      setRightSidebarOpen(false)
     } catch (err) {
       setError('Failed to open document')
     }
@@ -171,17 +176,50 @@ export default function Chat() {
 
   return (
     <div className="min-h-dvh bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50">
-      <div className="h-dvh grid grid-cols-[280px_1fr_280px]">
-        <aside className="h-full border-r border-emerald-200/50 bg-gradient-to-r from-emerald-100/50 to-teal-100/50 backdrop-blur-xl shadow-xl flex flex-col overflow-y-auto">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-b border-emerald-200/50 shadow-sm">
+        <div className="flex items-center justify-between p-4">
+          <button onClick={() => setLeftSidebarOpen(true)} className="p-2 rounded-lg hover:bg-emerald-50 transition-colors">
+            <Menu className="w-6 h-6 text-teal-700" />
+          </button>
+          <div className="flex items-center gap-2">
+            <img src={logoImg} alt="DocFusion AI" className="w-8 h-8 object-contain" />
+            <div className="text-lg font-black text-teal-700">DocFusion AI</div>
+          </div>
+          <button onClick={() => setRightSidebarOpen(true)} className="p-2 rounded-lg hover:bg-emerald-50 transition-colors">
+            <FileText className="w-6 h-6 text-teal-700" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Backdrop */}
+      {(leftSidebarOpen || rightSidebarOpen) && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity"
+          onClick={() => {
+            setLeftSidebarOpen(false)
+            setRightSidebarOpen(false)
+          }}
+          style={{ zIndex: 45 }}
+        />
+      )}
+
+      <div className="h-dvh pt-16 lg:pt-0 grid grid-cols-1 lg:grid-cols-[280px_1fr_280px]">
+        {/* Left Sidebar - Chat History */}
+        <aside className={`fixed lg:static top-0 bottom-0 left-0 w-80 lg:w-auto h-full border-r border-emerald-200/50 bg-gradient-to-r from-emerald-100/50 to-teal-100/50 backdrop-blur-xl shadow-xl flex flex-col overflow-y-auto transition-transform duration-300 ${leftSidebarOpen ? 'translate-x-0 z-50' : '-translate-x-full lg:translate-x-0 z-40'}`}>
           <div className="p-6 border-b border-emerald-200/50">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-16 h-16">
-                <img src={logoImg} alt="DocFusion AI" className="w-full h-full object-contain" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16">
+                  <img src={logoImg} alt="DocFusion AI" className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-teal-700 tracking-tight">DocFusion AI</div>
+                </div>
               </div>
-              <div>
-                <div className="text-2xl font-black text-teal-700 tracking-tight">DocFusion AI</div>
-                {/* <div className="text-xs text-teal-600 font-semibold">Your Document Assistant</div> */}
-              </div>
+              <button onClick={() => setLeftSidebarOpen(false)} className="lg:hidden p-2 rounded-lg hover:bg-emerald-200/50 transition-colors">
+                <X className="w-5 h-5 text-teal-700" />
+              </button>
             </div>
           </div>
 
@@ -213,6 +251,7 @@ export default function Chat() {
                         setSessionId(s.name)
                         setFileName('')
                         if (fileRef.current) fileRef.current.value = ''
+                        setLeftSidebarOpen(false) // Close sidebar on mobile after selection
                         try{ const r = await api.get('/documents', { params: { session_id: s.name } }); setDocs(r.data) }catch{}
                         try{ const r2 = await api.get('/chat/history', { params: { session_id: s.name } }); setMessages(r2.data) }catch{}
                       }}>{s.name}</button>
@@ -259,18 +298,18 @@ export default function Chat() {
           </div>
         </aside>
 
-        <main className="h-full flex flex-col overflow-hidden">
+        <main className={`h-full flex flex-col overflow-hidden transition-opacity duration-300 ${(leftSidebarOpen || rightSidebarOpen) ? 'lg:opacity-100 opacity-50' : 'opacity-100'}`}>
 
           <div className="flex-1 overflow-auto chat-scroll">
-            <div className="max-w-4xl mx-auto p-8 space-y-6">
+            <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
               {!messages.length && (
-                <div className="text-center py-20">
-                  <div className="w-20 h-20 mx-auto mb-4">
+                <div className="text-center py-12 sm:py-20">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4">
                     <img src={logoImg} alt="DocFusion AI" className="w-full h-full object-contain" />
                   </div>
-                  <h2 className="text-3xl font-black text-teal-700 mb-3">Welcome, {userName}! 👋</h2>
-                  <p className="text-slate-600 text-lg mb-2">Your Intelligent Document Assistant</p>
-                  <p className="text-slate-500 max-w-2xl mx-auto">
+                  <h2 className="text-2xl sm:text-3xl font-black text-teal-700 mb-3 px-4">Welcome, {userName}! 👋</h2>
+                  <p className="text-slate-600 text-base sm:text-lg mb-2 px-4">Your Intelligent Document Assistant</p>
+                  <p className="text-sm sm:text-base text-slate-500 max-w-2xl mx-auto px-4">
                     Upload your PDF documents and interact with them using natural language. Ask questions, extract insights, and get AI-powered answers with source references instantly.
                   </p>
                 </div>
@@ -290,30 +329,30 @@ export default function Chat() {
           </div>
 
           {error && (
-            <div className="px-8 py-2">
+            <div className="px-4 sm:px-6 lg:px-8 py-2">
               <div className="max-w-4xl mx-auto bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
                 {error}
               </div>
             </div>
           )}
 
-          <footer className="p-6 border-t border-emerald-200/30 bg-gradient-to-br from-emerald-50/90 to-teal-50/90 backdrop-blur-xl sticky bottom-0">
+          <footer className="p-4 sm:p-6 border-t border-emerald-200/30 bg-gradient-to-br from-emerald-50/90 to-teal-50/90 backdrop-blur-xl sticky bottom-0">
             <div className="max-w-4xl mx-auto">
-              <div className="relative flex items-center gap-3 p-2 bg-white rounded-2xl shadow-xl border-2 border-emerald-200/50 hover:border-emerald-300 transition-all">
+              <div className="relative flex items-center gap-2 sm:gap-3 p-2 bg-white rounded-2xl shadow-xl border-2 border-emerald-200/50 hover:border-emerald-300 transition-all">
                 <input 
                   value={input} 
                   onChange={e=>setInput(e.target.value)} 
                   onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} 
-                  placeholder="Ask anything about your documents..." 
-                  className="flex-1 px-4 py-3 bg-transparent outline-none text-slate-700 placeholder:text-slate-400" 
+                  placeholder="Ask anything..." 
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-transparent outline-none text-slate-700 placeholder:text-slate-400 text-sm sm:text-base" 
                 />
                 <button 
                   onClick={send} 
-                  className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all font-semibold" 
+                  className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-4 sm:px-6 py-2 sm:py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all font-semibold text-sm sm:text-base" 
                   disabled={typing || !input.trim()}
                 >
                   <Send className="w-4 h-4" />
-                  {typing ? 'Thinking...' : 'Send'}
+                  <span className="hidden sm:inline">{typing ? 'Thinking...' : 'Send'}</span>
                 </button>
               </div>
             </div>
@@ -321,10 +360,17 @@ export default function Chat() {
         </main>
 
         {/* Right Sidebar - Documents */}
-        <aside className="h-full border-l border-emerald-200/50 bg-gradient-to-r from-emerald-100/50 to-teal-100/50 backdrop-blur-xl shadow-xl flex flex-col overflow-y-auto">
+        <aside className={`fixed lg:static top-0 bottom-0 right-0 w-80 lg:w-auto h-full border-l border-emerald-200/50 bg-gradient-to-r from-emerald-100/50 to-teal-100/50 backdrop-blur-xl shadow-xl flex flex-col overflow-y-auto transition-transform duration-300 ${rightSidebarOpen ? 'translate-x-0 z-50' : 'translate-x-full lg:translate-x-0 z-40'}`}>
           <div className="p-6 border-b border-emerald-200/50">
-            <div className="text-lg font-bold text-teal-700">Documents</div>
-            <div className="text-xs text-teal-600 mt-1">Manage your PDFs</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold text-teal-700">Documents</div>
+                <div className="text-xs text-teal-600 mt-1">Manage your PDFs</div>
+              </div>
+              <button onClick={() => setRightSidebarOpen(false)} className="lg:hidden p-2 rounded-lg hover:bg-emerald-200/50 transition-colors">
+                <X className="w-5 h-5 text-teal-700" />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-auto p-4 space-y-4">
